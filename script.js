@@ -53,6 +53,20 @@ const colors = [
 let cart = [];
 let currentProductId = null;
 
+// Función para mostrar notificación flotante
+function showNotification(message) {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notificationText');
+
+    notificationText.textContent = message;
+    notification.classList.add('show');
+
+    // Ocultar automáticamente después de 3 segundos
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
+}
+
 // Funciones para localStorage
 function loadCart() {
     const cartData = localStorage.getItem('cart');
@@ -259,8 +273,7 @@ function addToCartFromModal(productId) {
     });
     
     updateCart();
-    alert(`¡${quantity} unidad(es) agregada(s) al carrito!`);
-    closeProductModal();
+    showNotification(`¡${quantity} unidad(es) agregada(s) al carrito!`);
 }
 
 function updateCart() {

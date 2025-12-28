@@ -86,6 +86,39 @@
             cursor: not-allowed;
         }
 
+        .order-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .download-csv-button {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .download-csv-button:hover:not(:disabled) {
+            background: #1976D2;
+            transform: scale(1.02);
+        }
+
+        .download-csv-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
         .cart-tables-container {
             display: flex;
             flex-direction: column;
@@ -219,9 +252,14 @@
         </div>
 
         <div class="cart-page-footer">
-            <button class="whatsapp-button-large" id="sendWhatsApp" disabled>
-                📱 Enviar Pedido por WhatsApp
-            </button>
+            <div class="order-buttons">
+                <button class="download-csv-button" id="downloadCSV" disabled>
+                    📊 Ver Tabla HTML
+                </button>
+                <button class="whatsapp-button-large" id="sendWhatsApp" disabled>
+                    📱 Enviar Pedido por WhatsApp
+                </button>
+            </div>
         </div>
     </div>
 

@@ -119,8 +119,18 @@ function sendToWhatsApp() {
     const cart = loadCart();
     if (cart.length === 0) return;
 
+    // Obtener nombre del cliente
+    const customerName = document.getElementById('customerName').value.trim();
+    if (!customerName) {
+        alert('Por favor ingresa tu nombre antes de enviar el pedido.');
+        document.getElementById('customerName').focus();
+        return;
+    }
+
     // Crear tabla estructurada para WhatsApp
     let message = `🦆 *PEDIDO - LOS 2 PATITOS* 🦆\n\n`;
+    message += `*Cliente: ${customerName}*\n`;
+    message += `*Fecha: ${new Date().toLocaleDateString('es-ES')}*\n\n`;
     message += `*DETALLE DEL PEDIDO:*\n\n`;
 
     // Crear tabla por producto
@@ -168,14 +178,14 @@ function sendToWhatsApp() {
 
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     message += `*TOTAL: ${totalItems} unidad(es)*\n\n`;
-    message += `💡 *Para preparar el pedido más fácilmente, descarga el CSV desde el botón azul arriba*\n\n`;
+    message += `💡 *Para ver un screenshot del pedido, usa el botón "Generar Screenshot" arriba*\n\n`;
     message += `Gracias por tu pedido! 🛍️`;
 
     // Codificar el mensaje para URL
     const encodedMessage = encodeURIComponent(message);
 
-    // Número de WhatsApp (cambiar por el número real)
-    const whatsappNumber = "5491112345678"; // Formato: código país + número sin espacios ni guiones
+    // Número de WhatsApp del usuario
+    const whatsappNumber = "5491162883441";
 
     // Abrir WhatsApp
     window.open(`https://wa.me/${whatsappNumber}?text=${encodedMessage}`, '_blank');
@@ -407,13 +417,113 @@ function generateHTML() {
 }
 
 function downloadCSV() {
+    const cart = loadCart();
+    if (cart.length === 0) return;
+
+    // Obtener nombre del cliente
+    const customerName = document.getElementById('customerName').value.trim();
+    if (!customerName) {
+        alert('Por favor ingresa tu nombre antes de generar el screenshot.');
+        document.getElementById('customerName').focus();
+        return;
+    }
+
+    // Generar HTML de la tabla
     const html = generateHTML();
     if (!html) return;
 
-    // Abrir en nueva ventana
-    const newWindow = window.open('', '_blank');
-    newWindow.document.write(html);
-    newWindow.document.close();
+    // Crear una ventana temporal con la tabla para tomar screenshot
+    const tempWindow = window.open('', '_blank', 'width=1200,height=800');
+    tempWindow.document.write(html);
+    tempWindow.document.close();
+
+    // Esperar a que la página cargue y tomar screenshot
+    tempWindow.onload = function() {
+        setTimeout(() => {
+            // Tomar screenshot de la tabla
+            const tableElement = tempWindow.document.querySelector('.cart-tables-container');
+
+            if (tableElement) {
+                html2canvas(tableElement, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true
+                }).then(canvas => {
+                    // Convertir canvas a blob
+                    canvas.toBlob(blob => {
+                        // Crear URL del blob
+                        const imageUrl = URL.createObjectURL(blob);
+
+                        // Crear mensaje para WhatsApp
+                        let message = `🦆 *PEDIDO - LOS 2 PATITOS* 🦆\n\n`;
+                        message += `*Cliente: ${customerName}*\n`;
+                        message += `*Fecha: ${new Date().toLocaleDateString('es-ES')}*\n\n`;
+                        message += `📸 *SCREENSHOT DEL PEDIDO ADJUNTO*\n\n`;
+                        message += `📊 *Imagen de la tabla completa del pedido*\n\n`;
+                        message += `✅ *Screenshot generado automáticamente*\n\n`;
+                        message += `Gracias por tu pedido! 🛍️`;
+
+                        // Mostrar la imagen generada
+                        const imageWindow = window.open('', '_blank');
+                        imageWindow.document.write(`
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <title>Screenshot del Pedido</title>
+                                <style>
+                                    body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+                                    img { max-width: 100%; border: 1px solid #ccc; }
+                                    .instructions { margin: 20px 0; padding: 15px; background: #e8f5e8; border-radius: 8px; }
+                                    .download-btn { background: #25D366; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 10px; }
+                                    .download-btn:hover { background: #20BA5A; }
+                                </style>
+                            </head>
+                            <body>
+                                <h1>📸 Screenshot del Pedido</h1>
+                                <p><strong>Cliente:</strong> ${customerName}</p>
+                                <p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+                                <img src="${imageUrl}" alt="Screenshot del pedido" />
+                                <div class="instructions">
+                                    <h3>📱 Para enviar por WhatsApp:</h3>
+                                    <p>1. Haz clic en "Descargar Imagen"</p>
+                                    <p>2. Abre WhatsApp y envía la imagen descargada</p>
+                                    <p>3. El screenshot llegará a tu número 5491162883441</p>
+                                </div>
+                                <button class="download-btn" onclick="downloadImage()">⬇️ Descargar Imagen</button>
+                                <script>
+                                    function downloadImage() {
+                                        const link = document.createElement('a');
+                                        link.href = '${imageUrl}';
+                                        link.download = 'pedido_los2patitos_${new Date().toISOString().split('T')[0]}.png';
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    }
+                                </script>
+                            </body>
+                            </html>
+                        `);
+                        imageWindow.document.close();
+
+                        // Cerrar la ventana temporal
+                        tempWindow.close();
+
+                        // Mostrar mensaje de éxito
+                        alert('✅ Screenshot generado!\n\nSe abrió una nueva ventana con la imagen.\nDescárgala y envíala por WhatsApp.');
+
+                    }, 'image/png');
+                }).catch(error => {
+                    console.error('Error generando screenshot:', error);
+                    alert('Error generando el screenshot. Intenta nuevamente.');
+                    tempWindow.close();
+                });
+            } else {
+                alert('No se pudo encontrar la tabla para generar el screenshot.');
+                tempWindow.close();
+            }
+        }, 2000); // Esperar 2 segundos para que cargue
+    };
 }
 
 // Event listeners

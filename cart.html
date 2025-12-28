@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carrito - Los 2 Patitos</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         .cart-page-container {
             max-width: 900px;
@@ -117,6 +118,35 @@
         .download-csv-button:disabled {
             background: #ccc;
             cursor: not-allowed;
+        }
+
+        .customer-info {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .customer-info label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .customer-info input {
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            font-size: 1em;
+            width: 100%;
+            max-width: 300px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .customer-info input:focus {
+            border-color: #764ba2;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
         }
 
         .cart-tables-container {
@@ -252,9 +282,13 @@
         </div>
 
         <div class="cart-page-footer">
+            <div class="customer-info">
+                <label for="customerName">Tu Nombre:</label>
+                <input type="text" id="customerName" placeholder="Ingresa tu nombre" maxlength="50">
+            </div>
             <div class="order-buttons">
                 <button class="download-csv-button" id="downloadCSV" disabled>
-                    📊 Ver Tabla HTML
+                    📸 Generar Screenshot
                 </button>
                 <button class="whatsapp-button-large" id="sendWhatsApp" disabled>
                     📱 Enviar Pedido por WhatsApp

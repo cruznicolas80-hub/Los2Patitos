@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrito - Los 2 Patitos</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .cart-page-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .cart-page-header {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cart-page-header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin: 0;
+        }
+
+        .back-button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .back-button:hover {
+            transform: scale(1.05);
+        }
+
+        .cart-page-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            min-height: 400px;
+        }
+
+        .cart-page-footer {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .whatsapp-button-large {
+            width: 100%;
+            max-width: 400px;
+            padding: 18px;
+            background: #25D366;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .whatsapp-button-large:hover:not(:disabled) {
+            background: #20BA5A;
+            transform: scale(1.02);
+        }
+
+        .whatsapp-button-large:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .cart-tables-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .cart-product-table-wrapper {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .cart-product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .cart-product-header h3 {
+            color: #333;
+            font-size: 1.3em;
+            margin: 0;
+        }
+
+        .remove-product-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+
+        .remove-product-btn:hover {
+            background: #cc0000;
+        }
+
+        .cart-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .cart-size-color-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .cart-size-color-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .cart-size-color-table th {
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1em;
+        }
+
+        .cart-size-color-table th:first-child {
+            text-align: left;
+        }
+
+        .cart-size-color-table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .size-cell {
+            background: #f5f5f5;
+            font-weight: bold;
+            text-align: left !important;
+            min-width: 80px;
+        }
+
+        .quantity-cell {
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        .quantity-cell.has-quantity {
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .quantity-cell.has-quantity:hover {
+            background: #c8e6c9;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .cart-product-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .cart-size-color-table {
+                font-size: 0.85em;
+            }
+
+            .cart-size-color-table th,
+            .cart-size-color-table td {
+                padding: 8px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cart-page-container">
+        <div class="cart-page-header">
+            <h1>🛒 Carrito de Pedido</h1>
+            <a href="index.html" class="back-button">← Volver al Catálogo</a>
+        </div>
+
+        <div class="cart-page-content">
+            <div id="cartContent">
+                <p class="empty-cart">Cargando carrito...</p>
+            </div>
+        </div>
+
+        <div class="cart-page-footer">
+            <button class="whatsapp-button-large" id="sendWhatsApp" disabled>
+                📱 Enviar Pedido por WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <script src="cart.js"></script>
+</body>
+</html>
+

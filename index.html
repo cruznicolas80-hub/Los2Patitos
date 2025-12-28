@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Los 2 Patitos - Indumentaria por Mayor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🦆 Los 2 Patitos 🦆</h1>
+            <p class="subtitle">Indumentaria por Mayor</p>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Buscar productos...">
+            </div>
+        </header>
+
+        <div class="catalog" id="catalog">
+            <!-- Los productos se cargarán dinámicamente -->
+        </div>
+
+        <!-- Modal de Producto -->
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal-content" id="modalContent">
+                <button class="close-modal" id="closeModal">✕</button>
+                <div class="modal-body" id="modalBody">
+                    <!-- Contenido del modal se cargará dinámicamente -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón flotante para ir al carrito -->
+        <a href="cart.html" class="cart-toggle" id="cartToggle">
+            🛒 <span id="cartCount">0</span>
+        </a>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

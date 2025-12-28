@@ -115,10 +115,6 @@
             transform: scale(1.02);
         }
 
-        .download-csv-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
 
         .customer-info {
             margin-bottom: 20px;
@@ -235,6 +231,7 @@
 
         .quantity-cell {
             font-size: 1.1em;
+            background: #f9f9f9;
             transition: all 0.3s ease;
         }
 
@@ -286,9 +283,8 @@
                 <label for="customerName">Tu Nombre:</label>
                 <input type="text" id="customerName" placeholder="Ingresa tu nombre" maxlength="50">
             </div>
-            <div class="order-buttons">
-                <button class="download-csv-button" id="downloadCSV" disabled>
-                    📸 Generar Screenshot
+            <div class="order-buttons">                <button class="download-html-button" id="downloadHTML">
+                    📄 Descargar HTML
                 </button>
                 <button class="whatsapp-button-large" id="sendWhatsApp" disabled>
                     📱 Enviar Pedido por WhatsApp

@@ -5,11 +5,16 @@ const colors = [
 ];
 
 const sizes = [4, 6, 8, 10, 12, 14, 16, 18];
+const WHATSAPP_NUMBER = "5491162883441";
 
 // Cargar carrito desde localStorage
 function loadCart() {
     const cartData = localStorage.getItem('cart');
-    return cartData ? JSON.parse(cartData) : [];
+    try {
+        return cartData ? JSON.parse(cartData) : [];
+    } catch (e) {
+        return [];
+    }
 }
 
 // Guardar carrito en localStorage
@@ -17,40 +22,41 @@ function saveCart(cart) {
     localStorage.setItem('cart', JSON.stringify(cart));
 }
 
-// Actualizar el carrito
-function updateCart() {
-    const cart = loadCart();
-    const cartContent = document.getElementById('cartContent');
-    const sendButton = document.getElementById('sendWhatsApp');
-    const downloadButton = document.getElementById('downloadCSV');
-
-    if (cart.length === 0) {
-        cartContent.innerHTML = '<p class="empty-cart">El carrito está vacío</p>';
-        sendButton.disabled = true;
-        downloadButton.disabled = true;
-        return;
-    }
-
-    sendButton.disabled = false;
-    downloadButton.disabled = false;
-
-    // Agrupar por producto
+// Helper: Agrupar productos por ID -> Talle -> Color (valor)
+function groupCartByProduct(cart) {
     const productsGrouped = {};
     cart.forEach(item => {
         if (!productsGrouped[item.productId]) {
             productsGrouped[item.productId] = {
                 productName: item.productName,
-                data: {} // [size][color] = quantity
+                data: {} // [size][colorValue] = quantity
             };
         }
         if (!productsGrouped[item.productId].data[item.size]) {
             productsGrouped[item.productId].data[item.size] = {};
         }
-        if (!productsGrouped[item.productId].data[item.size][item.color]) {
-            productsGrouped[item.productId].data[item.size][item.color] = 0;
-        }
-        productsGrouped[item.productId].data[item.size][item.color] += item.quantity;
+        const colorKey = item.color; // Usamos el valor (ej: 'azul') para consistencia interna
+        productsGrouped[item.productId].data[item.size][colorKey] = (productsGrouped[item.productId].data[item.size][colorKey] || 0) + item.quantity;
     });
+    return productsGrouped;
+}
+
+// Actualizar el carrito
+function updateCart() {
+    const cart = loadCart();
+    const cartContent = document.getElementById('cartContent');
+    const sendButton = document.getElementById('sendWhatsApp');
+
+    if (cart.length === 0) {
+        cartContent.innerHTML = '<p class="empty-cart">El carrito está vacío</p>';
+        sendButton.disabled = true;
+        return;
+    }
+
+    sendButton.disabled = false;
+
+    // Agrupar por producto
+    const productsGrouped = groupCartByProduct(cart);
 
     let html = '<div class="cart-tables-container">';
     
@@ -77,7 +83,7 @@ function updateCart() {
         sizes.forEach(size => {
             html += `<tr><td class="size-cell"><strong>${size}</strong></td>`;
             colors.forEach(color => {
-                const quantity = product.data[size] && product.data[size][color.value] ? product.data[size][color.value] : 0;
+                const quantity = (product.data[size] && product.data[size][color.value]) || 0;
                 if (quantity > 0) {
                     html += `<td class="quantity-cell has-quantity" onclick="removeSizeColor(${productId}, ${size}, '${color.value}')" title="Clic para eliminar">
                         ${quantity}
@@ -134,22 +140,7 @@ function sendToWhatsApp() {
     message += `*DETALLE DEL PEDIDO:*\n\n`;
 
     // Crear tabla por producto
-    const productsGrouped = {};
-    cart.forEach(item => {
-        if (!productsGrouped[item.productId]) {
-            productsGrouped[item.productId] = {
-                productName: item.productName,
-                data: {}
-            };
-        }
-        if (!productsGrouped[item.productId].data[item.size]) {
-            productsGrouped[item.productId].data[item.size] = {};
-        }
-        if (!productsGrouped[item.productId].data[item.size][item.colorName]) {
-            productsGrouped[item.productId].data[item.size][item.colorName] = 0;
-        }
-        productsGrouped[item.productId].data[item.size][item.colorName] += item.quantity;
-    });
+    const productsGrouped = groupCartByProduct(cart);
 
     Object.keys(productsGrouped).forEach(productId => {
         const product = productsGrouped[productId];
@@ -158,60 +149,57 @@ function sendToWhatsApp() {
         // Crear tabla ASCII para cada producto
         const sizes = Object.keys(product.data).sort((a, b) => parseInt(a) - parseInt(b));
         const colors = [...new Set(sizes.flatMap(size => Object.keys(product.data[size])))].sort();
+        // Obtener claves de color (values) presentes en este producto
+        const productColorKeys = [...new Set(sizes.flatMap(size => Object.keys(product.data[size])))].sort();
+        
+        // Función auxiliar para obtener el nombre visual del color (ej: 'azul' -> 'Azul')
+        const getColorName = (val) => (colors.find(c => c.value === val) || {}).name || val;
 
         // Encabezado de tabla
         message += `┌─────┬${colors.map(() => '────────────').join('┬')}┐\n`;
         message += `│Talle│${colors.map(color => color.padEnd(12)).join('│')}│\n`;
         message += `├─────┼${colors.map(() => '────────────').join('┼')}┤\n`;
+        message += `┌─────┬${productColorKeys.map(() => '────────────').join('┬')}┐\n`;
+        message += `│Talle│${productColorKeys.map(key => getColorName(key).padEnd(12)).join('│')}│\n`;
+        message += `├─────┼${productColorKeys.map(() => '────────────').join('┼')}┤\n`;
 
         // Filas de datos
         sizes.forEach(size => {
-            const row = colors.map(color => {
-                const qty = product.data[size][color] || 0;
+            const row = productColorKeys.map(key => {
+                const qty = product.data[size][key] || 0;
                 return qty.toString().padEnd(12);
             });
             message += `│${size.padEnd(5)}│${row.join('│')}│\n`;
         });
 
         message += `└─────┴${colors.map(() => '────────────').join('┴')}┘\n\n`;
+        message += `└─────┴${productColorKeys.map(() => '────────────').join('┴')}┘\n\n`;
     });
 
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     message += `*TOTAL: ${totalItems} unidad(es)*\n\n`;
-    message += `💡 *Para ver un screenshot del pedido, usa el botón "Generar Screenshot" arriba*\n\n`;
+    message += `💡 *Para ver el pedido en Google Sheets, usa el botón "Enviar Google Sheets" arriba*\n\n`;
     message += `Gracias por tu pedido! 🛍️`;
 
     // Codificar el mensaje para URL
     const encodedMessage = encodeURIComponent(message);
 
-    // Número de WhatsApp del usuario
-    const whatsappNumber = "5491162883441";
-
     // Abrir WhatsApp
-    window.open(`https://wa.me/${whatsappNumber}?text=${encodedMessage}`, '_blank');
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`, '_blank');
+
+    // Vaciar carrito y volver al inicio
+    setTimeout(() => {
+        localStorage.removeItem('cart');
+        window.location.href = 'index.html';
+    }, 1000);
 }
 
-function generateHTML() {
+function generateHTML(customerName = 'Cliente') {
     const cart = loadCart();
     if (cart.length === 0) return '';
 
     // Agrupar por producto como en la tabla del carrito
-    const productsGrouped = {};
-    cart.forEach(item => {
-        if (!productsGrouped[item.productId]) {
-            productsGrouped[item.productId] = {
-                productName: item.productName,
-                data: {}
-            };
-        }
-        if (!productsGrouped[item.productId].data[item.size]) {
-            productsGrouped[item.productId].data[item.size] = {};
-        }
-        if (!productsGrouped[item.productId].data[item.size][item.color]) {
-            productsGrouped[item.productId].data[item.size][item.color] = 0;
-        }
-        productsGrouped[item.productId].data[item.size][item.color] += item.quantity;
-    });
+    const productsGrouped = groupCartByProduct(cart);
 
     // Generar HTML completo
     let html = `
@@ -353,7 +341,7 @@ function generateHTML() {
 <body>
     <div class="container">
         <div class="header">
-            <h1>🦆 Los 2 Patitos 🦆</h1>
+            <h1>🦆 Los 2 Patitos - Pedido de ${customerName} 🦆</h1>
             <p>Pedido de Indumentaria</p>
             <div class="date">Fecha: ${new Date().toLocaleDateString('es-ES')}</div>
         </div>
@@ -384,7 +372,7 @@ function generateHTML() {
         sizes.forEach(size => {
             html += `<tr><td class="size-cell"><strong>${size}</strong></td>`;
             colors.forEach(color => {
-                const quantity = product.data[size] && product.data[size][color.value] ? product.data[size][color.value] : 0;
+                const quantity = (product.data[size] && product.data[size][color.value]) || 0;
                 const cellClass = quantity > 0 ? 'quantity-cell has-quantity' : 'quantity-cell';
                 html += `<td class="${cellClass}">${quantity > 0 ? quantity : '-'}</td>`;
             });
@@ -416,120 +404,95 @@ function generateHTML() {
     return html;
 }
 
-function downloadCSV() {
+function downloadHTML() {
     const cart = loadCart();
-    if (cart.length === 0) return;
-
-    // Obtener nombre del cliente
-    const customerName = document.getElementById('customerName').value.trim();
-    if (!customerName) {
-        alert('Por favor ingresa tu nombre antes de generar el screenshot.');
-        document.getElementById('customerName').focus();
+    if (cart.length === 0) {
+        alert('El carrito está vacío. Agrega productos antes de descargar el HTML.');
         return;
     }
 
-    // Generar HTML de la tabla
-    const html = generateHTML();
-    if (!html) return;
+    // Obtener nombre del cliente (opcional)
+    const customerName = document.getElementById('customerName').value.trim() || 'Cliente';
 
-    // Crear una ventana temporal con la tabla para tomar screenshot
-    const tempWindow = window.open('', '_blank', 'width=1200,height=800');
-    tempWindow.document.write(html);
-    tempWindow.document.close();
+    // Generar HTML del pedido
+    const htmlContent = generateHTML(customerName);
 
-    // Esperar a que la página cargue y tomar screenshot
-    tempWindow.onload = function() {
-        setTimeout(() => {
-            // Tomar screenshot de la tabla
-            const tableElement = tempWindow.document.querySelector('.cart-tables-container');
+    // Crear blob con el HTML
+    const htmlBlob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+    const htmlUrl = URL.createObjectURL(htmlBlob);
 
-            if (tableElement) {
-                html2canvas(tableElement, {
-                    backgroundColor: '#ffffff',
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true
-                }).then(canvas => {
-                    // Convertir canvas a blob
-                    canvas.toBlob(blob => {
-                        // Crear URL del blob
-                        const imageUrl = URL.createObjectURL(blob);
+    // Crear enlace de descarga
+    const downloadLink = document.createElement('a');
+    downloadLink.href = htmlUrl;
+    downloadLink.download = `pedido_los2patitos_${new Date().toISOString().split('T')[0]}.html`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
 
-                        // Crear mensaje para WhatsApp
-                        let message = `🦆 *PEDIDO - LOS 2 PATITOS* 🦆\n\n`;
-                        message += `*Cliente: ${customerName}*\n`;
-                        message += `*Fecha: ${new Date().toLocaleDateString('es-ES')}*\n\n`;
-                        message += `📸 *SCREENSHOT DEL PEDIDO ADJUNTO*\n\n`;
-                        message += `📊 *Imagen de la tabla completa del pedido*\n\n`;
-                        message += `✅ *Screenshot generado automáticamente*\n\n`;
-                        message += `Gracias por tu pedido! 🛍️`;
+    // Liberar URL
+    URL.revokeObjectURL(htmlUrl);
 
-                        // Mostrar la imagen generada
-                        const imageWindow = window.open('', '_blank');
-                        imageWindow.document.write(`
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                                <title>Screenshot del Pedido</title>
-                                <style>
-                                    body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-                                    img { max-width: 100%; border: 1px solid #ccc; }
-                                    .instructions { margin: 20px 0; padding: 15px; background: #e8f5e8; border-radius: 8px; }
-                                    .download-btn { background: #25D366; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin: 10px; }
-                                    .download-btn:hover { background: #20BA5A; }
-                                </style>
-                            </head>
-                            <body>
-                                <h1>📸 Screenshot del Pedido</h1>
-                                <p><strong>Cliente:</strong> ${customerName}</p>
-                                <p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
-                                <img src="${imageUrl}" alt="Screenshot del pedido" />
-                                <div class="instructions">
-                                    <h3>📱 Para enviar por WhatsApp:</h3>
-                                    <p>1. Haz clic en "Descargar Imagen"</p>
-                                    <p>2. Abre WhatsApp y envía la imagen descargada</p>
-                                    <p>3. El screenshot llegará a tu número 5491162883441</p>
-                                </div>
-                                <button class="download-btn" onclick="downloadImage()">⬇️ Descargar Imagen</button>
-                                <script>
-                                    function downloadImage() {
-                                        const link = document.createElement('a');
-                                        link.href = '${imageUrl}';
-                                        link.download = 'pedido_los2patitos_${new Date().toISOString().split('T')[0]}.png';
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                    }
-                                </script>
-                            </body>
-                            </html>
-                        `);
-                        imageWindow.document.close();
+    // Mostrar mensaje de éxito
+    alert('Archivo HTML descargado. Puedes compartirlo por WhatsApp o email.');
 
-                        // Cerrar la ventana temporal
-                        tempWindow.close();
-
-                        // Mostrar mensaje de éxito
-                        alert('✅ Screenshot generado!\n\nSe abrió una nueva ventana con la imagen.\nDescárgala y envíala por WhatsApp.');
-
-                    }, 'image/png');
-                }).catch(error => {
-                    console.error('Error generando screenshot:', error);
-                    alert('Error generando el screenshot. Intenta nuevamente.');
-                    tempWindow.close();
-                });
-            } else {
-                alert('No se pudo encontrar la tabla para generar el screenshot.');
-                tempWindow.close();
-            }
-        }, 2000); // Esperar 2 segundos para que cargue
-    };
+    // Vaciar carrito y volver al inicio
+    setTimeout(() => {
+        localStorage.removeItem('cart');
+        window.location.href = 'index.html';
+    }, 1000);
 }
 
-// Event listeners
-document.getElementById('sendWhatsApp').addEventListener('click', sendToWhatsApp);
-document.getElementById('downloadCSV').addEventListener('click', downloadCSV);
+function createGist(htmlContent, customerName) {
+    const token = 'TU_TOKEN_DE_GITHUB_AQUI'; // Reemplaza con tu token personal de GitHub
+    if (token === 'TU_TOKEN_DE_GITHUB_AQUI') {
+        alert('Por favor configura tu token de GitHub en el código.');
+        return;
+    }
 
-// Cargar carrito al iniciar
-updateCart();
+    const gistData = {
+        description: `Pedido de ${customerName} - Los 2 Patitos`,
+        public: true,
+        files: {
+            'pedido.html': {
+                content: htmlContent
+            }
+        }
+    };
 
+    fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: {
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(gistData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.html_url) {
+            // Abrir WhatsApp con el enlace del gist
+            const message = `🦆 *PEDIDO - LOS 2 PATITOS* 🦆\n\nCliente: ${customerName}\n\n📄 *Enlace al pedido en HTML:* ${data.html_url}\n\nGracias por tu pedido!`;
+            const encodedMessage = encodeURIComponent(message);
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`, '_blank');
+
+            // Vaciar carrito y volver al inicio
+            setTimeout(() => {
+                localStorage.removeItem('cart');
+                window.location.href = 'index.html';
+            }, 1000);
+        } else {
+            alert('Error al crear el gist. Revisa tu token de GitHub.');
+        }
+    })
+};
+
+window.addEventListener('load', () => {
+    const sendBtn = document.getElementById('sendWhatsApp');
+    const downloadHtmlBtn = document.getElementById('downloadHTML');
+    
+    if (sendBtn) sendBtn.addEventListener('click', sendToWhatsApp);
+    if (downloadHtmlBtn) downloadHtmlBtn.addEventListener('click', downloadHTML);
+
+    // Cargar carrito al iniciar
+    updateCart();
+});    

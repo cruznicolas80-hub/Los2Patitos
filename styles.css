@@ -68,8 +68,8 @@ h1 {
 
 .product-card {
     background: white;
-    border-radius: 15px;
-    padding: 20px;
+    border-radius: 12px;
+    padding: 12px; /* reducido para minimizar el borde visible alrededor de la imagen */
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     cursor: pointer;
@@ -82,25 +82,37 @@ h1 {
 
 .product-image {
     width: 100%;
-    height: 180px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 10px;
+    aspect-ratio: 4 / 3; /* mantiene proporción y reduce la necesidad de espacio extra */
+    height: auto;
+    overflow: hidden; /* evita bordes visibles dentro del contenedor */
+    background: transparent; /* eliminar fondo para que la imagen ocupe todo */
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 4em;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
+    padding: 0;
 }
 
 /* Imagen dentro de la card: ajustar tamaño y recorte */
 .product-image img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    border-radius: 10px;
+    object-fit: cover; /* llena el área y recorta lo necesario */
+    object-position: center center; /* asegurar enfoque central */
+    transform: scale(0.90); /* menos 'zoom' para mostrar más del producto */
+    transition: transform 220ms ease, opacity 220ms ease; /* suavizar cambio */
+    border-radius: 8px; /* coincide con el contenedor para minimizar borde */
     display: block;
-}
+    border: none;
+} 
+
+/* Al hacer hover en la tarjeta, un zoom leve y natural */
+.product-card:hover .product-image img {
+    transform: scale(0.94);
+}   
 
 .product-name {
     font-size: 1.4em;
@@ -205,34 +217,43 @@ h1 {
 }
 
 .modal-media {
-    width: 55%;
+    width: 70%;
 }
 
 .modal-options {
-    width: 45%;
+    width: 30%;
 }
 
 .modal-product-image {
-    width: 100%;
-    height: 420px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 15px;
+    width: 100%; /* ocupa todo el ancho de .modal-media (que ahora es 70% del modal) */
+    margin: 0;
+    aspect-ratio: 4 / 3; /* escala con el contenedor y se mantiene proporcional */
+    height: auto;
+    max-height: 60vh;
+    overflow: hidden; /* elimina espacios internos y bordes visibles */
+    background: transparent; /* dejar que la imagen ocupe todo el bloque */
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 5em;
     margin-bottom: 12px;
-}
+    padding: 0;
+} 
 
 /* Imagen principal en modal */
 .modal-product-image img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    border-radius: 12px;
+    object-fit: cover; /* llena el contenedor y recorta lo necesario */
+    object-position: center center;
+    transform: scale(1); /* escala completa, sin zoom */
+    transition: transform 220ms ease, opacity 220ms ease;
+    border-radius: 8px;
     display: block;
-}
+    border: none;
+}  
 
 /* Miniaturas en modal */
 .modal-thumbs {
@@ -256,9 +277,9 @@ h1 {
 /* Estado seleccionado para miniaturas */
 .modal-thumb.selected {
     border-color: #764ba2;
-    transform: scale(1.06);
-    box-shadow: 0 6px 18px rgba(118,75,162,0.25);
-}
+    transform: scale(1.02); /* menos zoom al seleccionar miniatura */
+    box-shadow: 0 6px 18px rgba(118,75,162,0.16);
+}  
 
 .modal-product-name {
     font-size: 1.8em;
@@ -369,8 +390,8 @@ h1 {
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 .color-btn.selected img {
-    transform: scale(1.08);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    transform: scale(1.02); /* menos zoom en color seleccionado */
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
 }
 
 .color-btn {

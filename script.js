@@ -140,6 +140,12 @@ function openProductModal(productId) {
             <div class="option-group">
                 <label>Talle:</label>
                 <div class="size-selector">
+                    <button type="button" 
+                            class="size-btn size-all-btn" 
+                            data-product="${productId}"
+                            title="Seleccionar todos los talles">
+                        Todos
+                    </button>
                     ${sizes.map(size => `
                         <button type="button" 
                                 class="size-btn" 
@@ -190,32 +196,50 @@ function openProductModal(productId) {
     // Mostrar modal
     document.getElementById('modalOverlay').classList.add('open');
     
-    // Event listeners para botones de talle en el modal
-    document.querySelectorAll('.size-btn').forEach(btn => {
+    // Event listeners para botones de talle en el modal (permitir multi-selección)
+    document.querySelectorAll(`.size-btn[data-product="${productId}"]`).forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
-            const productId = parseInt(this.dataset.product);
-            document.querySelectorAll(`.size-btn[data-product="${productId}"]`).forEach(b => {
-                b.classList.remove('selected');
-            });
-            this.classList.add('selected');
+            const isAll = this.classList.contains('size-all-btn');
+            const productIdLocal = this.dataset.product;
+            const sizeBtns = Array.from(document.querySelectorAll(`.size-btn[data-product="${productIdLocal}"]`)).filter(b => !b.classList.contains('size-all-btn'));
+
+            if (isAll) {
+                const anyUnselected = sizeBtns.some(b => !b.classList.contains('selected'));
+                if (anyUnselected) {
+                    // seleccionar todos
+                    sizeBtns.forEach(b => b.classList.add('selected'));
+                    this.classList.add('selected');
+                } else {
+                    // deseleccionar todos
+                    sizeBtns.forEach(b => b.classList.remove('selected'));
+                    this.classList.remove('selected');
+                }
+            } else {
+                // toggle individual
+                this.classList.toggle('selected');
+                // actualizar estado del botón 'Todos'
+                const allBtn = document.querySelector(`.size-all-btn[data-product="${productIdLocal}"]`);
+                if (allBtn) {
+                    const allSelected = sizeBtns.every(b => b.classList.contains('selected'));
+                    if (allSelected) allBtn.classList.add('selected'); else allBtn.classList.remove('selected');
+                }
+            }
         });
     });
     
-    // Event listeners para botones de color en el modal
+    // Colores: permitir multi-selección (toggle). La imagen principal se actualiza con el color clickeado.
     document.querySelectorAll('.modal-color-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
-            const productId = parseInt(this.dataset.product);
-            document.querySelectorAll(`.modal-color-btn[data-product="${productId}"]`).forEach(b => {
-                b.classList.remove('selected');
-            });
-            this.classList.add('selected');
+            const productIdLocal = parseInt(this.dataset.product);
+            // toggle en lugar de seleccionar exclusivamente
+            this.classList.toggle('selected');
 
-            // Actualizar imagen principal y miniaturas según el color seleccionado
+            // Actualizar imagen principal y miniaturas según el color clickeado (usar la imagen del color clickeado)
             const colorVal = this.dataset.color;
             const modalBodyEl = document.getElementById('modalBody');
-            const mainImg = document.getElementById(`modal-main-image-${productId}`);
+            const mainImg = document.getElementById(`modal-main-image-${productIdLocal}`);
             if (product.images && typeof product.images === 'object' && !Array.isArray(product.images)) {
                 const imgs = product.images[colorVal] || [];
                 if (imgs.length > 0) {
@@ -224,7 +248,7 @@ function openProductModal(productId) {
                     } else {
                         const mediaEl = modalBodyEl.querySelector('.modal-product-image');
                         if (mediaEl) {
-                            mediaEl.innerHTML = `<img id="modal-main-image-${productId}" src="${imgs[0]}" alt="${product.name}">`;
+                            mediaEl.innerHTML = `<img id="modal-main-image-${productIdLocal}" src="${imgs[0]}" alt="${product.name}">`;
                         }
                     }
                 }
@@ -232,11 +256,11 @@ function openProductModal(productId) {
                 const thumbsContainer = modalBodyEl.querySelector('.modal-thumbs');
                 if (thumbsContainer) {
                     thumbsContainer.innerHTML = imgs.map((src,i) => `<img class="modal-thumb" src="${src}" alt="${product.name} ${i+1}" data-index="${i}">`).join('');
-                    // reattach listeners a las miniaturas
                     thumbsContainer.querySelectorAll('.modal-thumb').forEach(t => {
                         t.addEventListener('click', function(ev) {
                             ev.stopPropagation();
-                            if (mainImg) mainImg.src = this.src;
+                            const mainImgLocal = document.getElementById(`modal-main-image-${productIdLocal}`);
+                            if (mainImgLocal) mainImgLocal.src = this.src;
                             thumbsContainer.querySelectorAll('.modal-thumb').forEach(x => x.classList.remove('selected'));
                             this.classList.add('selected');
                         });
@@ -251,6 +275,7 @@ function openProductModal(productId) {
     // Preseleccionar siempre el primer color del producto y disparar su click
     const firstColorBtn = document.querySelector(`.modal-color-btn[data-product="${productId}"]`);
     if (firstColorBtn) {
+        firstColorBtn.classList.add('selected');
         // ejecutar click para que el handler actualice imagenes y miniaturas
         firstColorBtn.click();
     }
@@ -294,55 +319,64 @@ function closeProductModal() {
 
 function addToCartFromModal(productId) {
     const product = products.find(p => p.id === productId);
-    const selectedSizeBtn = document.querySelector(`.size-btn.selected[data-product="${productId}"]`);
     const quantityInput = document.getElementById(`modal-qty-${productId}`);
-    const selectedColorBtn = document.querySelector(`.modal-color-btn.selected[data-product="${productId}"]`);
-    
-    const size = selectedSizeBtn ? selectedSizeBtn.dataset.size : null;
-    const quantity = parseInt(quantityInput.value);
-    const color = selectedColorBtn ? selectedColorBtn.dataset.color : null;
-    
-    if (!size) {
-        alert('Por favor selecciona un talle');
+    const quantity = parseInt(quantityInput.value) || 0;
+
+    // Obtener talles seleccionados (excluir el botón 'Todos')
+    const selectedSizeBtns = Array.from(document.querySelectorAll(`.size-btn.selected[data-product="${productId}"]`)).filter(b => !b.classList.contains('size-all-btn'));
+    let sizesSelected = selectedSizeBtns.map(b => b.dataset.size);
+    // Si no hay talles individuales seleccionados, pero 'Todos' está seleccionado, usar todos los talles
+    const allSizesBtn = document.querySelector(`.size-all-btn.selected[data-product="${productId}"]`);
+    if (sizesSelected.length === 0 && allSizesBtn) {
+        sizesSelected = sizes.map(s => s.toString());
+    }
+
+    // Obtener colores seleccionados
+    const selectedColorBtns = Array.from(document.querySelectorAll(`.modal-color-btn.selected[data-product="${productId}"]`));
+    const colorsSelected = selectedColorBtns.map(b => b.dataset.color);
+
+    if (sizesSelected.length === 0) {
+        alert('Por favor selecciona al menos un talle');
         return;
     }
-    
-    if (!color) {
-        alert('Por favor selecciona un color');
+
+    if (colorsSelected.length === 0) {
+        alert('Por favor selecciona al menos un color');
         return;
     }
-    
+
     if (quantity <= 0) {
         alert('Por favor ingresa una cantidad mayor a 0');
         return;
     }
-    
-    // Buscar si ya existe este producto con mismo talle y color
-    const existingIndex = cart.findIndex(item => 
-        item.productId === productId && 
-        item.size === size && 
-        item.color === color
-    );
-    
-    if (existingIndex >= 0) {
-        cart[existingIndex].quantity += quantity;
-    } else {
-        const colorName = colors.find(c => c.value === color).name;
-        cart.push({
-            productId: productId,
-            productName: product.name,
-            size: size,
-            color: color,
-            colorName: colorName,
-            quantity: quantity,
-            price: product.price
+
+    // Añadir cada combinación talla x color
+    let addedCount = 0;
+    sizesSelected.forEach(size => {
+        colorsSelected.forEach(color => {
+            const existingIndex = cart.findIndex(item => item.productId === productId && item.size === size && item.color === color);
+            if (existingIndex >= 0) {
+                cart[existingIndex].quantity += quantity;
+            } else {
+                const colorName = (colors.find(c => c.value === color) || {}).name || color;
+                cart.push({
+                    productId: productId,
+                    productName: product.name,
+                    size: size,
+                    color: color,
+                    colorName: colorName,
+                    quantity: quantity,
+                    price: product.price
+                });
+            }
+            addedCount += quantity;
         });
-    }
+    });
     
     // Guardar en localStorage
     saveCart(cart);
-    
-    // Resetear formulario
+
+    // Resetear formulario (deseleccionar talles y colores)
     quantityInput.value = 0;
     document.querySelectorAll(`.size-btn[data-product="${productId}"]`).forEach(b => {
         b.classList.remove('selected');
@@ -350,9 +384,9 @@ function addToCartFromModal(productId) {
     document.querySelectorAll(`.modal-color-btn[data-product="${productId}"]`).forEach(b => {
         b.classList.remove('selected');
     });
-    
+
     updateCart();
-    showNotification(`¡${quantity} unidad(es) agregada(s) al carrito!`);
+    showNotification(`¡${addedCount} unidad(es) agregada(s) al carrito!`);
 }
 
 function updateCart() {

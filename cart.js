@@ -1,10 +1,10 @@
 const colors = [
-    { name: "Blanco", value: "blanco", hex: "#FFFFFF" },
-    { name: "Azul", value: "azul", hex: "#0066CC" },
-    { name: "Rojo", value: "rojo", hex: "#CC0000" }
+    { name: "Rojo", value: "rojo", hex: "#CC0000" },
+    { name: "Azul Marino", value: "azul-marino", hex: "#0A2342" },
+    { name: "Gris", value: "gris", hex: "#808080" }
 ];
 
-const sizes = [4, 6, 8, 10, 12, 14, 16, 18];
+const sizes = [4, 6, 8, 10, 12, 14, 16];
 const WHATSAPP_NUMBER = "5491162883441";
 
 // Cargar carrito desde localStorage

@@ -41,13 +41,26 @@ const products = [
         price: "$28.00",
         emoji: "👔"
     }
+    ,
+    {
+        id: 7,
+        name: "Buso Escolar",
+        description: "Buso escolar cómodo y resistente. Talles 4 al 16.",
+        price: "$7000.00",
+        emoji: "🧥",
+        images: {
+            "rojo": ["img/Gemini_Generated_Image_ga2t1fga2t1fga2t.png"],
+            "azul-marino": ["img/Gemini_Generated_Image_h93ofch93ofch93o.png"],
+            "gris": ["img/Gemini_Generated_Image_vwhpz7vwhpz7vwhp.png"]
+        }
+    }
 ];
 
-const sizes = [4, 6, 8, 10, 12, 14, 16, 18];
+const sizes = [4, 6, 8, 10, 12, 14, 16];
 const colors = [
-    { name: "Blanco", value: "blanco", hex: "#FFFFFF" },
-    { name: "Azul", value: "azul", hex: "#0066CC" },
-    { name: "Rojo", value: "rojo", hex: "#CC0000" }
+    { name: "Rojo", value: "rojo", hex: "#CC0000" },
+    { name: "Azul Marino", value: "azul-marino", hex: "#0A2342" },
+    { name: "Gris", value: "gris", hex: "#808080" }
 ];
 
 let cart = [];
@@ -95,7 +108,7 @@ function renderProducts(productsToRender) {
 
     catalog.innerHTML = productsToRender.map(product => `
         <div class="product-card" onclick="openProductModal(${product.id})">
-            <div class="product-image">${product.emoji}</div>
+            <div class="product-image">${product.images ? (typeof product.images === 'object' && !Array.isArray(product.images) ? product.images[Object.keys(product.images)[0]][0] : product.images[0]) ? `<img src="${(typeof product.images === 'object' && !Array.isArray(product.images) ? product.images[Object.keys(product.images)[0]][0] : product.images[0])}" alt="${product.name}">` : product.emoji : product.emoji}</div>
             <div class="product-name">${product.name}</div>
             <div class="product-description">${product.description}</div>
             <div class="product-price">${product.price}</div>
@@ -109,13 +122,21 @@ function openProductModal(productId) {
     currentProductId = productId;
     
     const modalBody = document.getElementById('modalBody');
+    // Determinar imagen inicial: sólo si `images` es un array (no map por color)
+    const initialImageSrc = product.images ? (Array.isArray(product.images) ? product.images[0] : null) : null;
+
+    // Estructura: imagen a la izquierda, opciones a la derecha
     modalBody.innerHTML = `
-        <div class="modal-product-image">${product.emoji}</div>
-        <h2 class="modal-product-name">${product.name}</h2>
-        <p class="modal-product-description">${product.description}</p>
-        <div class="modal-product-price">${product.price}</div>
-        
-        <div class="modal-options">
+        <div class="modal-row">
+            <div class="modal-media">
+                <div class="modal-product-image">${initialImageSrc ? `<img id="modal-main-image-${productId}" src="${initialImageSrc}" alt="${product.name}">` : product.emoji}</div>
+                <div class="modal-thumbs">${initialImageSrc && Array.isArray(product.images) ? product.images.map((src,i)=>`<img class="modal-thumb" src="${src}" alt="${product.name} ${i+1}" data-index="${i}">`).join('') : ''}</div>
+            </div>
+
+            <div class="modal-options">
+                <h2 class="modal-product-name">${product.name}</h2>
+                <p class="modal-product-description">${product.description}</p>
+                <div class="modal-product-price">${product.price}</div>
             <div class="option-group">
                 <label>Talle:</label>
                 <div class="size-selector">
@@ -138,8 +159,9 @@ function openProductModal(productId) {
                                 class="color-btn modal-color-btn" 
                                 data-color="${color.value}"
                                 data-product="${productId}"
-                                style="background-color: ${color.hex}; border: 2px solid ${color.value === 'blanco' ? '#ccc' : color.hex}"
+                                ${product.images && typeof product.images === 'object' && !Array.isArray(product.images) && product.images[color.value] && product.images[color.value].length ? '' : `style="background-color: ${color.hex}; border: 2px solid ${color.value === 'blanco' ? '#ccc' : color.hex}"`}
                                 title="${color.name}">
+                            ${product.images && typeof product.images === 'object' && !Array.isArray(product.images) && product.images[color.value] && product.images[color.value].length ? `<img src="${product.images[color.value][0]}" alt="${color.name}">` : ''}
                         </button>
                     `).join('')}
                 </div>
@@ -189,8 +211,49 @@ function openProductModal(productId) {
                 b.classList.remove('selected');
             });
             this.classList.add('selected');
+
+            // Actualizar imagen principal y miniaturas según el color seleccionado
+            const colorVal = this.dataset.color;
+            const modalBodyEl = document.getElementById('modalBody');
+            const mainImg = document.getElementById(`modal-main-image-${productId}`);
+            if (product.images && typeof product.images === 'object' && !Array.isArray(product.images)) {
+                const imgs = product.images[colorVal] || [];
+                if (imgs.length > 0) {
+                    if (mainImg) {
+                        mainImg.src = imgs[0];
+                    } else {
+                        const mediaEl = modalBodyEl.querySelector('.modal-product-image');
+                        if (mediaEl) {
+                            mediaEl.innerHTML = `<img id="modal-main-image-${productId}" src="${imgs[0]}" alt="${product.name}">`;
+                        }
+                    }
+                }
+
+                const thumbsContainer = modalBodyEl.querySelector('.modal-thumbs');
+                if (thumbsContainer) {
+                    thumbsContainer.innerHTML = imgs.map((src,i) => `<img class="modal-thumb" src="${src}" alt="${product.name} ${i+1}" data-index="${i}">`).join('');
+                    // reattach listeners a las miniaturas
+                    thumbsContainer.querySelectorAll('.modal-thumb').forEach(t => {
+                        t.addEventListener('click', function(ev) {
+                            ev.stopPropagation();
+                            if (mainImg) mainImg.src = this.src;
+                            thumbsContainer.querySelectorAll('.modal-thumb').forEach(x => x.classList.remove('selected'));
+                            this.classList.add('selected');
+                        });
+                    });
+                }
+            } else if (mainImg && product.images && product.images[0]) {
+                mainImg.src = product.images[0];
+            }
         });
     });
+
+    // Preseleccionar siempre el primer color del producto y disparar su click
+    const firstColorBtn = document.querySelector(`.modal-color-btn[data-product="${productId}"]`);
+    if (firstColorBtn) {
+        // ejecutar click para que el handler actualice imagenes y miniaturas
+        firstColorBtn.click();
+    }
     
     // Event listeners para cantidad en el modal
     document.querySelector(`.qty-btn.plus[data-product="${productId}"]`).addEventListener('click', function(e) {
@@ -206,6 +269,22 @@ function openProductModal(productId) {
             input.value = parseInt(input.value) - 1;
         }
     });
+
+    // Miniaturas: click cambia imagen principal y marca la miniatura seleccionada
+    const modalBodyEl = document.getElementById('modalBody');
+    const thumbs = modalBodyEl.querySelectorAll('.modal-thumb');
+    if (thumbs && thumbs.length > 0) {
+        thumbs.forEach(thumb => {
+            thumb.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const mainImg = document.getElementById(`modal-main-image-${productId}`);
+                if (mainImg) mainImg.src = this.src;
+                // remover selected de todas las miniaturas dentro del modal
+                modalBodyEl.querySelectorAll('.modal-thumb').forEach(t => t.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+    }
 }
 
 function closeProductModal() {
